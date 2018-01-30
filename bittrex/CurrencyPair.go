@@ -31,22 +31,25 @@ func (c CurrencyPair) BuildTradingPairs() CurrencyPair {
 }
 
 func (c CurrencyPair) GetTradingPairPrices(btrxAuth *bittrex.Bittrex) (CurrencyPair, error) {
+  fmt.Print(c.Name + ", ")
   for i:=0; i<len(c.TradingPairs); i++ {
       tradingPair := c.TradingPairs[i].Name
 
       pairInfo, err := btrxAuth.GetTicker(tradingPair)
       if err != nil {
-        fmt.Println(err)
+        fmt.Println("ERROR:", err)
         return c, err
       }
       c.TradingPairs[i].Bid = pairInfo.Bid
       c.TradingPairs[i].Ask = pairInfo.Ask
       c.TradingPairs[i].InvBid, err = inverse(pairInfo.Bid)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return c, err
       }
       c.TradingPairs[i].InvAsk, err= inverse(pairInfo.Ask)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return c, err
       }
     }
@@ -114,10 +117,12 @@ func (c CurrencyPair) FindArbitrageOpps(btrx *bittrex.Bittrex) (*TradeOrder, err
         btc_ethAsk = btc_ethTicker.Ask
         eth_btcBid, err = inverse(btc_ethBid)
         if err != nil {
+          fmt.Println("ERROR:", err)
           return errorTO, err
         }
         eth_btcAsk, err = inverse(btc_ethAsk)
         if err != nil {
+          fmt.Println("ERROR:", err)
           return errorTO, err
         }
     } else if c.Bases[i] == "USDT" {
@@ -131,10 +136,12 @@ func (c CurrencyPair) FindArbitrageOpps(btrx *bittrex.Bittrex) (*TradeOrder, err
       usd_btcBid = btc_usdtTicker.Bid
       btc_usdAsk, err = inverse(usd_btcAsk)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return errorTO, err
       }
       btc_usdBid, err = inverse(usd_btcBid)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return errorTO, err
       }
 
@@ -147,10 +154,12 @@ func (c CurrencyPair) FindArbitrageOpps(btrx *bittrex.Bittrex) (*TradeOrder, err
       usd_ethBid = eth_usdtTicker.Bid
       eth_usdAsk, err = inverse(usd_ethAsk)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return errorTO, err
       }
       eth_usdBid,err = inverse(usd_ethBid)
       if err != nil {
+        fmt.Println("ERROR:", err)
         return errorTO, err
       }
     }

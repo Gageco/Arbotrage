@@ -11,6 +11,7 @@ import (
 )
 
 func authentication() (string, string) {
+  fmt.Println("Authenticating...")
   inFile, _ := os.Open("./config")
   scanner := bufio.NewScanner(inFile)
 	scanner.Split(bufio.ScanLines)
@@ -60,29 +61,27 @@ func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo Fal
     if !RealTrading {         //Write fake trading junk here
       if side == "Bid" {
         price = pairInfo.Bid
-        amountToTrade, err = getAmountToTrade(tradeInfo.Trades[i], price, &fakeInfo)
+        amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         if err != nil {
           return "", err, fakeInfo
         }
       } else {
         price = pairInfo.Ask
-        amountToTrade, err = getAmountToTrade(tradeInfo.Trades[i], price, &fakeInfo)
+        amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         if err != nil {
           return "", err, fakeInfo
         }
 
       }
-      // fmt.Println("Traded ",  tradeInfo.Alt)
-      // fmt.Println(fakeInfo)
-      // time.Sleep(5 * time.Second)
+      time.Sleep(5 * time.Second)
     } else if RealTrading {   //Write real trading junk here
       if side == "Bid" {
         price = pairInfo.Bid
-        amountToTrade, err = getAmountToTrade(tradeInfo.Trades[i], price, &fakeInfo)
+        amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         // uuid, err := btrx.BuyLimit(tradeInfo.Trades[i].Pair, amountToTrade, price)
       } else {
         price = pairInfo.Ask
-        amountToTrade, err = getAmountToTrade(tradeInfo.Trades[i], price, &fakeInfo)
+        amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         // uuid, err := bittrex.SellLimit(tradeInfo[i].Pair, amountToTrade, price)
       }
     }
@@ -91,36 +90,29 @@ func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo Fal
   return "", nil, fakeInfo
 }
 
-func getAmountToTrade(trade Trade, price decimal.Decimal, fakeInfo *FalseTrade) (decimal.Decimal, error) {
+func getAmountToTrade(trade Trade, price decimal.Decimal, fakeInfo FalseTrade) (decimal.Decimal, FalseTrade, error) {
   if !RealTrading {
     per := .0025
     num := 1.0
     // fmt.Println("ALT:",trade.Alt)
     // fmt.Println("BASE:",trade.Base)
     if price == decimal.NewFromFloat(0.0) || fakeInfo.CurrentAmount == decimal.NewFromFloat(0.0) {
-      return decimal.NewFromFloat(0.0), errors.New("Price Cant Be Zero")
+      return decimal.NewFromFloat(0.0), fakeInfo, errors.New("Price Cant Be Zero")
     }
+    // fakeInfo.StartHolding = fakeInfo.CurrentHolding
+    // fmt.Println("fake",fakeInfo)
     if trade.BidAsk == "Bid" && trade.Base == fakeInfo.CurrentHolding {
       amount := fakeInfo.CurrentAmount.DivRound(price, 10)
       fakeInfo.CurrentHolding = trade.Alt
       fakeInfo.CurrentAmount = fees(amount, per, num)
-      return amount, nil
+      return amount, fakeInfo, nil
     } else if trade.BidAsk == "Ask" && trade.Alt == fakeInfo.CurrentHolding {
       amount := fakeInfo.CurrentAmount.Mul(price)
       fakeInfo.CurrentHolding = trade.Base
       fakeInfo.CurrentAmount = fees(amount, per, num)
-      return amount, nil
+      return amount, fakeInfo, nil
     }
   }
 
-  return decimal.NewFromFloat(0.0), nil
-}
-
-func buildFakeTrading() (FalseTrade) {
-  ft := new(FalseTrade)
-  ft.StartHolding = "BTC"
-  ft.StartAmount = decimal.NewFromFloat(0.025)
-  ft.CurrentHolding = "BTC"
-  ft.CurrentAmount = decimal.NewFromFloat(0.025)
-  return *ft
+  return decimal.NewFromFloat(0.0), fakeInfo, nil
 }

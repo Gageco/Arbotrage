@@ -12,24 +12,22 @@ const (
 )
 
 func main() {
-	var fakeInfo FalseTrade
-	// usdt_btcTicker, err := btrx.GetTicker("USDT-BTC")
 	API_KEY, API_SECRET := authentication()
 	bittrex := bittrex.New(API_KEY, API_SECRET)
-
+	fmt.Println("Getting Bittrex Markets...")
 	markets, err := bittrex.GetMarkets()
   if err != nil {
     fmt.Println(err)
   }
 
+	var fakeInfo FalseTrade
   var baseCurrency []string
   var arbitrageCurrency []string
   var tokenMap = make(map[string]CurrencyPair)
 
-	if !RealTrading {
-		fakeInfo = buildFakeTrading()
-	}
+	fakeInfo = FalseTrade{"BTC", decimal.NewFromFloat(.025),"BTC",decimal.NewFromFloat(.025)}
 
+	fmt.Println("Sorting Through Markets...")
   for i:=0; i < len(markets); i++ {
     foundBaseCurrency := false
     foundArbitrageCurrency := false
@@ -90,29 +88,30 @@ func main() {
       tokenMap[key] = pair.BuildTradingPairs()
     }
   }
-
-for g:=0; g<10; g++ {
-  for key, pair := range tokenMap {
-    tokenMap[key], err = pair.GetTradingPairPrices(bittrex)
-		if err != nil {
-			fmt.Println("Err:",err)
-			break
-		}
-		// fmt.Println(tokenMap[key])
-		tradeInfo, err := pair.FindArbitrageOpps(bittrex)
-		if err != nil {
-			fmt.Println("Err:",err)
-			break
-		}
-		if tradeInfo.TheoreticalGain.GreaterThanOrEqual(decimal.NewFromFloat(1.05)) {
-			// fmt.Println(tradeInfo.TheoreticalGain)
-			info, err, fakeInfo := performArbitrage(tradeInfo, bittrex, fakeInfo)
-			_, _ = info, err
-			fmt.Println("Traded:",tradeInfo.Alt)
-			fmt.Println(fakeInfo)
-		}
-  }
-}
-
-  // fmt.Println(tokenMap["BNT"])
+	fmt.Println("Determing Arbitrage Opportunities...")
+	for g:=0; g<10; g++ {
+		fmt.Print("Checking: ")
+	  for key, pair := range tokenMap {
+	    tokenMap[key], err = pair.GetTradingPairPrices(bittrex)
+			if err != nil {
+				fmt.Println("Err:",err)
+				break
+			}
+			// fmt.Println(tokenMap[key])
+			tradeInfo, err := pair.FindArbitrageOpps(bittrex)
+			if err != nil {
+				fmt.Println("Err:",err)
+				break
+			}
+			if tradeInfo.TheoreticalGain.GreaterThanOrEqual(decimal.NewFromFloat(1.02)) {
+				fmt.Println("\nOpportunity Found", tradeInfo.Alt)
+				// fmt.Println(tradeInfo.TheoreticalGain)
+				info, err, FI := performArbitrage(tradeInfo, bittrex, fakeInfo)
+				_, _ = info, err
+				fakeInfo = FI
+				fmt.Println(fakeInfo)
+				fmt.Print("\nChecking: ")
+			}
+	  }
+	}
 }
