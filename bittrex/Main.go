@@ -20,9 +20,10 @@ func main() {
     fmt.Println(err)
   }
 
-	var fakeInfo FalseTrade
-  var baseCurrency []string
-  var arbitrageCurrency []string
+	var history             []History
+	var fakeInfo            FalseTrade
+  var baseCurrency        []string
+  var arbitrageCurrency   []string
   var tokenMap = make(map[string]CurrencyPair)
 
 	fakeInfo = FalseTrade{"BTC", decimal.NewFromFloat(.025),"BTC",decimal.NewFromFloat(.025)}
@@ -89,7 +90,7 @@ func main() {
     }
   }
 	fmt.Println("Determing Arbitrage Opportunities...")
-	for g:=0; g<10; g++ {
+	for g:=0; g<5; g++ {
 		fmt.Print("Checking: ")
 	  for key, pair := range tokenMap {
 	    tokenMap[key], err = pair.GetTradingPairPrices(bittrex)
@@ -106,9 +107,11 @@ func main() {
 			if tradeInfo.TheoreticalGain.GreaterThanOrEqual(decimal.NewFromFloat(1.02)) {
 				fmt.Println("\nOpportunity Found", tradeInfo.Alt)
 				// fmt.Println(tradeInfo.TheoreticalGain)
-				info, err, FI := performArbitrage(tradeInfo, bittrex, fakeInfo)
-				_, _ = info, err
+				hist, err, FI := performArbitrage(tradeInfo, bittrex, fakeInfo)
+				_ = err
 				fakeInfo = FI
+				history = append(history, hist)
+				// fmt.Println(history)
 				fmt.Println(fakeInfo)
 				fmt.Print("\nChecking: ")
 			}

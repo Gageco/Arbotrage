@@ -45,10 +45,16 @@ func fees(num decimal.Decimal, percent float64, numberOfTrades float64) decimal.
   return num
 }
 
-func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo FalseTrade) (string, error, FalseTrade) {
+func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo FalseTrade) (History, error, FalseTrade) {
   var price decimal.Decimal
   var amountToTrade decimal.Decimal
+  var hist History
   _ = amountToTrade
+
+  if !RealTrading {
+    hist.StartAmount = fakeInfo.CurrentAmount
+    hist.TheoreticalPer = tradeInfo.TheoreticalGain.Sub(decimal.NewFromFloat(1))
+  }
 
   for i:=0;i<len(tradeInfo.Trades);i++ {
     side := tradeInfo.Trades[i].BidAsk
@@ -56,23 +62,24 @@ func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo Fal
     pairInfo, err := btrx.GetTicker(tradeInfo.Trades[i].Pair)
     if err != nil {
       fmt.Println("ERROR performAribtrage: ", err)
-      return "", errors.New("Could not find ticker"), fakeInfo
+      return hist, errors.New("Could not find ticker"), fakeInfo
     }
     if !RealTrading {         //Write fake trading junk here
+
       if side == "Bid" {
         price = pairInfo.Bid
         amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         if err != nil {
-          return "", err, fakeInfo
+          return hist, err, fakeInfo
         }
       } else {
         price = pairInfo.Ask
         amountToTrade, fakeInfo, err = getAmountToTrade(tradeInfo.Trades[i], price, fakeInfo)
         if err != nil {
-          return "", err, fakeInfo
+          return hist, err, fakeInfo
         }
-
       }
+
       time.Sleep(5 * time.Second)
     } else if RealTrading {   //Write real trading junk here
       if side == "Bid" {
@@ -87,7 +94,14 @@ func performArbitrage(tradeInfo *TradeOrder, btrx *bittrex.Bittrex, fakeInfo Fal
     }
   }
 
-  return "", nil, fakeInfo
+  if !RealTrading {
+    hist.EndAmount = fakeInfo.CurrentAmount
+    hist.PercentGain = hist.EndAmount.Sub(hist.StartAmount).Div(hist.StartAmount)
+    hist.PairTraded = tradeInfo.Alt
+    hist.Time = time.Now()
+  }
+
+  return hist, nil, fakeInfo
 }
 
 func getAmountToTrade(trade Trade, price decimal.Decimal, fakeInfo FalseTrade) (decimal.Decimal, FalseTrade, error) {
@@ -99,7 +113,7 @@ func getAmountToTrade(trade Trade, price decimal.Decimal, fakeInfo FalseTrade) (
     if price == decimal.NewFromFloat(0.0) || fakeInfo.CurrentAmount == decimal.NewFromFloat(0.0) {
       return decimal.NewFromFloat(0.0), fakeInfo, errors.New("Price Cant Be Zero")
     }
-    // fakeInfo.StartHolding = fakeInfo.CurrentHolding
+    // fakeInfo.StartAmount = fakeInfo.CurrentAmount
     // fmt.Println("fake",fakeInfo)
     if trade.BidAsk == "Bid" && trade.Base == fakeInfo.CurrentHolding {
       amount := fakeInfo.CurrentAmount.DivRound(price, 10)

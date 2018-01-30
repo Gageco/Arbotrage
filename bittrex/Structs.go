@@ -2,6 +2,7 @@ package main
 
 import (
   "github.com/shopspring/decimal"
+  "time"
 )
 
 type TradeOrder struct {
@@ -19,10 +20,11 @@ type Trade struct {
 }
 
 type History struct {
-  Time           string //Some sort of time thing
-  StartAmount    string
-  EndAmount      string
+  Time           time.Time //Some sort of time thing
+  StartAmount    decimal.Decimal
+  EndAmount      decimal.Decimal
   PercentGain    decimal.Decimal
+  TheoreticalPer decimal.Decimal
   PairTraded     string
 }
 
